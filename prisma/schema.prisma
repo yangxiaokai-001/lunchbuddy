@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String             @id @default(cuid())
+  username      String?            @unique
+  email         String?            @unique
+  passwordHash  String?
+  nickname      String
+  avatarUrl     String?
+  workStartTime String             @default("09:00")
+  workEndTime   String             @default("18:00")
+  timezone      String             @default("Asia/Shanghai")
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  ownedGroups   Group[]            @relation("GroupOwner")
+  groupMembers  GroupMember[]
+  foodOptions   FoodOption[]
+  foodSpins     FoodSpin[]         @relation("SpinStarter")
+  hiddenFoodOptions HiddenFoodOption[]
+  attendance    AttendanceRecord[]
+  moodLogs      MoodLog[]
+  todos         Todo[]
+}
+
+model Group {
+  id          String        @id @default(cuid())
+  name        String
+  inviteCode  String        @unique
+  ownerId     String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  owner       User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members     GroupMember[]
+  foodOptions FoodOption[]
+  foodSpins   FoodSpin[]
+}
+
+model GroupMember {
+  id       String          @id @default(cuid())
+  groupId  String
+  userId   String
+  role     GroupMemberRole @default(MEMBER)
+  joinedAt DateTime        @default(now())
+  group    Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
+
+model FoodOption {
+  id               String             @id @default(cuid())
+  groupId          String
+  name             String
+  restaurantName String?
+  dishName         String?
+  referencePrice   Int?
+  isHealthy        Boolean            @default(false)
+  isFastDelivery Boolean @default(false)
+  category         String?
+  createdBy        String
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  group            Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  creator          User               @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  selectedIn       FoodSpin[]         @relation("SelectedFoodOption")
+  hiddenByUsers    HiddenFoodOption[]
+
+  @@index([groupId, isActive])
+}
+
+model HiddenFoodOption {
+  id           String     @id @default(cuid())
+  userId       String
+  foodOptionId String
+  createdAt    DateTime   @default(now())
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodOption   FoodOption @relation(fields: [foodOptionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, foodOptionId])
+  @@index([userId])
+  @@index([foodOptionId])
+}
+
+model FoodSpin {
+  id                   String     @id @default(cuid())
+  groupId              String
+  selectedFoodOptionId String
+  startedBy            String
+  createdAt            DateTime   @default(now())
+  group                Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  selectedFoodOption   FoodOption @relation("SelectedFoodOption", fields: [selectedFoodOptionId], references: [id], onDelete: Restrict)
+  starter              User       @relation("SpinStarter", fields: [startedBy], references: [id], onDelete: Restrict)
+
+  @@index([groupId, createdAt])
+}
+
+model AttendanceRecord {
+  id           String           @id @default(cuid())
+  userId       String
+  workDate     DateTime
+  clockInAt    DateTime?
+  clockOutAt   DateTime?
+  workMinutes  Int? // finalized after clock-out, or calculated on demand while working
+  overtimeMins Int?             @default(0)
+  status       AttendanceStatus @default(WORKING)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workDate])
+  @@index([userId, workDate])
+}
+
+model MoodLog {
+  id        String   @id @default(cuid())
+  userId    String
+  workDate  DateTime
+  moodCode  MoodCode
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workDate])
+}
+
+model Todo {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String
+  isDone    Boolean   @default(false)
+  dueDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isDone])
+}
+
+enum GroupMemberRole {
+  OWNER
+  MEMBER
+}
+
+enum AttendanceStatus {
+  WORKING
+  FINISHED
+  MISSED
+}
+
+enum MoodCode {
+  ENERGETIC
+  NORMAL
+  TIRED
+  HUNGRY
+  WAITING_FOR_OFF_WORK
+}
