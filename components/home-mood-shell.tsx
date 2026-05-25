@@ -424,7 +424,10 @@ export function HomeMoodShell(props: HomeMoodShellProps) {
 
           <section className="pixel-panel p-4">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-base font-semibold">打卡</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-semibold">打卡</h3>
+                <span className="text-[11px] text-[var(--muted)]">tz-fix-v3</span>
+              </div>
               <button
                 type="button"
                 onClick={() => {
