@@ -3,6 +3,22 @@ import { requireCurrentUserId } from "@/lib/auth";
 import { getTodayAIDailyFeed } from "@/lib/ai-daily-feed";
 
 const REQUIRED_WORK_MINUTES = 9.5 * 60;
+const APP_TIMEZONE = "Asia/Shanghai";
+
+function formatDateParts(date: Date) {
+  const parts = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value ?? "0000";
+  const month = parts.find((part) => part.type === "month")?.value ?? "00";
+  const day = parts.find((part) => part.type === "day")?.value ?? "00";
+
+  return { year, month, day };
+}
 
 function startOfToday() {
   const now = new Date();
@@ -11,19 +27,18 @@ function startOfToday() {
 }
 
 function formatDateLabel(date: Date) {
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
+  const { month, day } = formatDateParts(date);
   return `${month} / ${day}`;
 }
 
 function formatShortDate(date: Date) {
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
+  const { month, day } = formatDateParts(date);
   return `${month}-${day}`;
 }
 
 function formatMonthLabel(date: Date) {
-  return `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, "0")}`;
+  const { year, month } = formatDateParts(date);
+  return `${year}-${month}`;
 }
 
 function addMonths(date: Date, months: number) {
@@ -34,6 +49,7 @@ function formatTime(date: Date | null | undefined) {
   if (!date) return "--:--";
 
   return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: APP_TIMEZONE,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,

@@ -20,6 +20,7 @@ import { clockInAction, clockOutAction } from "@/app/actions/attendance";
 import { PixelWorkBuddy } from "@/components/pixel-work-buddy";
 
 const moodOptions = ["干劲满满", "普通营业", "累了", "快下班吧"] as const;
+const APP_TIMEZONE = "Asia/Shanghai";
 
 type MoodOption = (typeof moodOptions)[number];
 
@@ -100,6 +101,7 @@ function formatFeedTimeLabel(value: string | null) {
   }
 
   return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: APP_TIMEZONE,
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
