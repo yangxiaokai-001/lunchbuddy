@@ -295,7 +295,7 @@ export async function getHomePageData() {
         id: record.id,
         monthLabel: formatMonthLabel(record.workDate),
         dateLabel: formatShortDate(record.workDate),
-        dayOfMonth: record.workDate.getDate(),
+        dayOfMonth: Number(getAppDateParts(record.workDate).day),
         clockInLabel: formatTime(record.clockInAt),
         clockOutLabel: formatTime(record.clockOutAt),
         workDurationLabel: formatMinutes(record.workMinutes),
