@@ -1,48 +1,30 @@
 import { prisma } from "@/lib/prisma";
 import { requireCurrentUserId } from "@/lib/auth";
 import { getTodayAIDailyFeed } from "@/lib/ai-daily-feed";
+import {
+  addAppMonths,
+  APP_TIMEZONE,
+  getAppDateParts,
+  parseClockTimeInAppDay,
+  startOfAppDay,
+  startOfAppMonth,
+} from "@/lib/app-timezone";
 
 const REQUIRED_WORK_MINUTES = 9.5 * 60;
-const APP_TIMEZONE = "Asia/Shanghai";
-
-function formatDateParts(date: Date) {
-  const parts = new Intl.DateTimeFormat("zh-CN", {
-    timeZone: APP_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-
-  const year = parts.find((part) => part.type === "year")?.value ?? "0000";
-  const month = parts.find((part) => part.type === "month")?.value ?? "00";
-  const day = parts.find((part) => part.type === "day")?.value ?? "00";
-
-  return { year, month, day };
-}
-
-function startOfToday() {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  return now;
-}
 
 function formatDateLabel(date: Date) {
-  const { month, day } = formatDateParts(date);
+  const { month, day } = getAppDateParts(date);
   return `${month} / ${day}`;
 }
 
 function formatShortDate(date: Date) {
-  const { month, day } = formatDateParts(date);
+  const { month, day } = getAppDateParts(date);
   return `${month}-${day}`;
 }
 
 function formatMonthLabel(date: Date) {
-  const { year, month } = formatDateParts(date);
+  const { year, month } = getAppDateParts(date);
   return `${year}-${month}`;
-}
-
-function addMonths(date: Date, months: number) {
-  return new Date(date.getFullYear(), date.getMonth() + months, 1);
 }
 
 function formatTime(date: Date | null | undefined) {
@@ -112,13 +94,6 @@ function buildDailyFoodPreview(
   return selected.map((option) => formatFoodPreviewName(option));
 }
 
-function parseClockTime(timeValue: string, baseDate: Date) {
-  const [hours, minutes] = timeValue.split(":").map(Number);
-  const target = new Date(baseDate);
-  target.setHours(hours, minutes, 0, 0);
-  return target;
-}
-
 function formatCountdown(target: Date, now: Date) {
   const diffMs = Math.max(0, target.getTime() - now.getTime());
   const totalSeconds = Math.floor(diffMs / 1000);
@@ -171,9 +146,9 @@ function getCountdownSummary(params: {
   workEndTime: string;
 }) {
   const now = new Date();
-  const today = startOfToday();
-  const startTarget = parseClockTime(params.workStartTime, today);
-  const endTarget = parseClockTime(params.workEndTime, today);
+  const today = startOfAppDay(now);
+  const startTarget = parseClockTimeInAppDay(params.workStartTime, today);
+  const endTarget = parseClockTimeInAppDay(params.workEndTime, today);
   const expectedClockOutAt = params.clockInAt
     ? addMinutes(params.clockInAt, REQUIRED_WORK_MINUTES)
     : null;
@@ -218,10 +193,10 @@ function getCountdownSummary(params: {
 }
 
 export async function getHomePageData() {
-  const today = startOfToday();
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const rangeStart = addMonths(monthStart, -3);
-  const rangeEnd = addMonths(monthStart, 2);
+  const today = startOfAppDay();
+  const monthStart = startOfAppMonth(today);
+  const rangeStart = addAppMonths(monthStart, -3);
+  const rangeEnd = addAppMonths(monthStart, 2);
   const currentUserId = await requireCurrentUserId();
 
   const user = await prisma.user.findUnique({
@@ -314,8 +289,8 @@ export async function getHomePageData() {
     }),
     attendanceCalendar: {
       monthLabel: formatMonthLabel(today),
-      minMonthLabel: formatMonthLabel(addMonths(monthStart, -3)),
-      maxMonthLabel: formatMonthLabel(addMonths(monthStart, 1)),
+      minMonthLabel: formatMonthLabel(addAppMonths(monthStart, -3)),
+      maxMonthLabel: formatMonthLabel(addAppMonths(monthStart, 1)),
       records: attendanceHistory.map((record) => ({
         id: record.id,
         monthLabel: formatMonthLabel(record.workDate),

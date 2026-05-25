@@ -4,15 +4,10 @@ import { AttendanceStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { requireCurrentUserId } from "@/lib/auth";
+import { startOfAppDay } from "@/lib/app-timezone";
 import { prisma } from "@/lib/prisma";
 
 const REQUIRED_WORK_MINUTES = 9.5 * 60;
-
-function startOfToday() {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  return now;
-}
 
 function addMinutes(date: Date, minutes: number) {
   return new Date(date.getTime() + minutes * 60 * 1000);
@@ -21,7 +16,7 @@ function addMinutes(date: Date, minutes: number) {
 export async function clockInAction() {
   const userId = await requireCurrentUserId();
 
-  const today = startOfToday();
+  const today = startOfAppDay();
   const now = new Date();
   const existing = await prisma.attendanceRecord.findUnique({
     where: {
@@ -83,7 +78,7 @@ export async function clockInAction() {
 export async function clockOutAction() {
   const userId = await requireCurrentUserId();
 
-  const today = startOfToday();
+  const today = startOfAppDay();
   const now = new Date();
 
   const attendance = await prisma.attendanceRecord.findUnique({
